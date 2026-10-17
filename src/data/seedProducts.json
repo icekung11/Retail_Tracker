@@ -1,0 +1,74 @@
+[
+  {
+    "id": "prod-101",
+    "name": "Aura Pro ANC Wireless Headphones",
+    "category": "Electronics",
+    "price": 199.99,
+    "stock": 24,
+    "sku": "ELEC-101",
+    "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80"
+  },
+  {
+    "id": "prod-102",
+    "name": "Ergonomic Executive Mesh Desk Chair",
+    "category": "Furniture",
+    "price": 249.50,
+    "stock": 15,
+    "sku": "FURN-102",
+    "image": "https://images.unsplash.com/photo-1580481072645-022f9a6d1299?w=300&q=80"
+  },
+  {
+    "id": "prod-103",
+    "name": "Vintage Espresso Grain Leather Jacket",
+    "category": "Apparel",
+    "price": 129.00,
+    "stock": 30,
+    "sku": "APPR-103",
+    "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&q=80"
+  },
+  {
+    "id": "prod-104",
+    "name": "Tactile Mechanical RGB Keyboard",
+    "category": "Electronics",
+    "price": 99.00,
+    "stock": 42,
+    "sku": "ELEC-104",
+    "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300&q=80"
+  },
+  {
+    "id": "prod-105",
+    "name": "Ceramic Cold-Brew Coffee Maker",
+    "category": "Home",
+    "price": 45.00,
+    "stock": 18,
+    "sku": "HOME-105",
+    "image": "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=300&q=80"
+  },
+  {
+    "id": "prod-106",
+    "name": "Ultra-Soft Merino Wool Sweater",
+    "category": "Apparel",
+    "price": 85.00,
+    "stock": 22,
+    "sku": "APPR-106",
+    "image": "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=300&q=80"
+  },
+  {
+    "id": "prod-107",
+    "name": "Smart Fitness & Sleep Tracker Band",
+    "category": "Electronics",
+    "price": 119.99,
+    "stock": 35,
+    "sku": "ELEC-107",
+    "image": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=300&q=80"
+  },
+  {
+    "id": "prod-108",
+    "name": "Stainless Steel Insulated Tumbler 32oz",
+    "category": "Home",
+    "price": 29.50,
+    "stock": 50,
+    "sku": "HOME-108",
+    "image": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=300&q=80"
+  }
+]
