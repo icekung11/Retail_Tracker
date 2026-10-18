@@ -1,79 +1,87 @@
-import fs from 'fs';
-import path from 'path';
 import { Product, ReturnRecord, AnalyticsSummary } from '@/types';
 import seedProducts from '@/data/seedProducts.json';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const STORAGE_KEY = 'retail-returns-tracker:database';
 
-interface DatabaseSchema {
+export interface DatabaseSchema {
   products: Product[];
   returns: ReturnRecord[];
 }
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData: DatabaseSchema = {
-      products: seedProducts,
-      returns: [
-        {
-          id: 'RET-801',
-          productId: 'prod-103',
-          productName: 'Vintage Espresso Grain Leather Jacket',
-          unitPrice: 129.00,
-          qty: 1,
-          reason: 'wrong_size',
-          type: 'return',
-          restock: true,
-          refundAmount: 129.00,
-          timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-          notes: 'Customer needed size Medium'
-        },
-        {
-          id: 'RET-802',
-          productId: 'prod-101',
-          productName: 'Aura Pro ANC Wireless Headphones',
-          unitPrice: 199.99,
-          qty: 1,
-          reason: 'defective',
-          type: 'return',
-          restock: false,
-          refundAmount: 199.99,
-          timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-          notes: 'Left earcup silent'
-        }
-      ]
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-  }
+function getInitialData(): DatabaseSchema {
+  return {
+    products: seedProducts.map(product => ({ ...product })),
+    returns: [
+      {
+        id: 'RET-801',
+        productId: 'prod-103',
+        productName: 'Vintage Espresso Grain Leather Jacket',
+        unitPrice: 129.00,
+        qty: 1,
+        reason: 'wrong_size',
+        type: 'return',
+        restock: true,
+        refundAmount: 129.00,
+        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+        notes: 'Customer needed size Medium'
+      },
+      {
+        id: 'RET-802',
+        productId: 'prod-101',
+        productName: 'Aura Pro ANC Wireless Headphones',
+        unitPrice: 199.99,
+        qty: 1,
+        reason: 'defective',
+        type: 'return',
+        restock: false,
+        refundAmount: 199.99,
+        timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+        notes: 'Left earcup silent'
+      }
+    ]
+  };
 }
 
 export function getDatabase(): DatabaseSchema {
-  ensureDataDir();
-  try {
-    const fileData = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(fileData);
-  } catch (error) {
-    console.error('Error reading database file, returning default:', error);
-    return { products: seedProducts, returns: [] };
+  if (typeof window === 'undefined') {
+    throw new Error('The browser database is only available in the client.');
   }
+
+  const storedData = window.localStorage.getItem(STORAGE_KEY);
+  if (!storedData) {
+    const initialData = getInitialData();
+    saveDatabase(initialData);
+    return initialData;
+  }
+
+  const data: unknown = JSON.parse(storedData);
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    !('products' in data) ||
+    !('returns' in data) ||
+    !Array.isArray(data.products) ||
+    !Array.isArray(data.returns)
+  ) {
+    throw new Error('The saved browser database has an invalid format. Reset browser data to initialize it again.');
+  }
+
+  return data as DatabaseSchema;
 }
 
 export function saveDatabase(data: DatabaseSchema): void {
-  ensureDataDir();
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  if (typeof window === 'undefined') {
+    throw new Error('The browser database is only available in the client.');
+  }
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 export function resetDatabase(): DatabaseSchema {
-  ensureDataDir();
   const resetData: DatabaseSchema = {
-    products: seedProducts,
+    products: seedProducts.map(product => ({ ...product })),
     returns: []
   };
-  fs.writeFileSync(DB_FILE, JSON.stringify(resetData, null, 2), 'utf-8');
+  saveDatabase(resetData);
   return resetData;
 }
 
@@ -81,21 +89,17 @@ export function addReturnTransaction(
   payload: Omit<ReturnRecord, 'id' | 'timestamp'>
 ): { record: ReturnRecord; updatedProducts: Product[] } {
   const db = getDatabase();
-  
-  // Find returned product
+
   const productIndex = db.products.findIndex(p => p.id === payload.productId);
   if (productIndex === -1) {
     throw new Error(`Product ID ${payload.productId} not found.`);
   }
-  
-  const targetProduct = db.products[productIndex];
 
-  // If restock is ON, increment stock
+  const targetProduct = db.products[productIndex];
   if (payload.restock) {
     targetProduct.stock += payload.qty;
   }
 
-  // Handle Exchange specifics
   if (payload.type === 'exchange' && payload.exchangeDetails) {
     const newProdIndex = db.products.findIndex(p => p.id === payload.exchangeDetails?.newProductId);
     if (newProdIndex === -1) {
@@ -107,11 +111,9 @@ export function addReturnTransaction(
       throw new Error(`Insufficient stock for exchange item: ${newProduct.name}. Available: ${newProduct.stock}`);
     }
 
-    // Decrement stock for newly taken exchange product
     newProduct.stock -= payload.exchangeDetails.newQty;
   }
 
-  // Create unique transaction record
   const newRecord: ReturnRecord = {
     ...payload,
     id: `RET-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -124,8 +126,7 @@ export function addReturnTransaction(
   return { record: newRecord, updatedProducts: db.products };
 }
 
-export function getAnalyticsSummary(): AnalyticsSummary {
-  const db = getDatabase();
+export function getAnalyticsSummary(db: DatabaseSchema = getDatabase()): AnalyticsSummary {
   const today = new Date().toISOString().split('T')[0];
 
   let todayRefundTotal = 0;
@@ -140,26 +141,22 @@ export function getAnalyticsSummary(): AnalyticsSummary {
   };
 
   db.returns.forEach((r) => {
-    // Restock counts
     if (r.restock) {
       restockedCount += r.qty;
     } else {
       quarantinedCount += r.qty;
     }
 
-    // Reason cost tracking
     if (reasonBreakdown[r.reason]) {
       reasonBreakdown[r.reason].count += r.qty;
       reasonBreakdown[r.reason].totalCost += Math.max(0, r.refundAmount);
     }
 
-    // Today's total refund (sum of positive refunds paid out today)
     if (r.timestamp.startsWith(today)) {
       todayRefundTotal += r.refundAmount;
     }
   });
 
-  // Calculate highest cost reason
   let topReason = 'None';
   let maxCost = -1;
   (Object.keys(reasonBreakdown) as Array<keyof typeof reasonBreakdown>).forEach((reason) => {

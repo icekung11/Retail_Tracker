@@ -79,12 +79,8 @@ The **Retail Returns & Exchange Tracker** is a specialized back-office web appli
 ## 1. System Architecture
 - **Framework**: Next.js 14+ (App Router) + TypeScript
 - **Styling**: Tailwind CSS + Glassmorphism Dark Theme design system
-- **Data Persistence**: File-based local JSON store (`data/db.json`)
-- **API Endpoints**:
-  - `GET /api/products`
-  - `POST /api/returns`
-  - `POST /api/reset`
-  - `POST /api/test-assertions`
+- **Data Persistence**: Browser `localStorage`; data is local to the current browser and device
+- **Deployment**: Static export to GitHub Pages via GitHub Actions
 
 ## 2. Invariant Safety Guard (Agent Hook)
 - **Invariant 1**: Non-Negative Inventory (`stock >= 0`).

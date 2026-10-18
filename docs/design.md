@@ -3,12 +3,9 @@
 ## 1. System Architecture
 - **Framework**: Next.js 14+ (App Router) + TypeScript
 - **Styling**: Tailwind CSS + Glassmorphism Dark Theme design system
-- **Data Persistence**: File-based local JSON store (`data/db.json`)
-- **API Endpoints**:
-  - `GET /api/products`
-  - `POST /api/returns`
-  - `POST /api/reset`
-  - `POST /api/test-assertions`
+- **Deployment**: Static export to GitHub Pages through GitHub Actions.
+- **Data Persistence**: Browser `localStorage`; data is local to one browser and device.
+- **Data Operations**: Inventory, returns, reset, analytics, and assertions run in the browser; there are no server API routes.
 
 ## 2. Invariant Safety Guard (Agent Hook)
 - **Invariant 1**: Non-Negative Inventory (`stock >= 0`).

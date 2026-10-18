@@ -1,8 +1,7 @@
-import { getDatabase } from './storage';
+import { DatabaseSchema } from './storage';
 import { AssertionResult, SingleAssertion } from '@/types';
 
-export function runSafetyAssertions(): AssertionResult {
-  const db = getDatabase();
+export function runSafetyAssertions(db: DatabaseSchema): AssertionResult {
   const assertions: SingleAssertion[] = [];
 
   // Assertion 1: Inventory Non-Negative Guard

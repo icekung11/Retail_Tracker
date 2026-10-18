@@ -1,7 +1,7 @@
 # Technical Design & Architecture: Retail Returns/Exchange Tracker
 
 ## 1. System Architecture
-The application is structured as a modern Next.js 14+ full-stack web application using TypeScript, Tailwind CSS, Lucide icons, and serverless API endpoints backed by a persistent local JSON data store.
+The application is a statically exported Next.js 14+ client application using TypeScript, Tailwind CSS, and Lucide icons. GitHub Actions deploys the static export to GitHub Pages.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -16,19 +16,11 @@ The application is structured as a modern Next.js 14+ full-stack web application
 │  │                 Return Log Table & Filter Engine                 │  │
 │  └────────────────────────────────┬─────────────────────────────────┘  │
 └───────────────────────────────────┼────────────────────────────────────┘
-                                    │ HTTP / REST API
+                                    │
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│                        Next.js Server API Routes                       │
-│                                                                        │
-│  ┌───────────────────────┐ ┌───────────────────┐ ┌──────────────────┐ │
-│  │ GET/POST /api/products│ │ POST /api/returns │ │POST /api/test... │ │
-│  └───────────┬───────────┘ └─────────┬─────────┘ └────────┬─────────┘ │
-└──────────────┼───────────────────────┼────────────────────┼────────────┘
-               │                       │                    │
-┌──────────────▼───────────────────────▼────────────────────▼────────────┐
-│                    Storage Engine (`src/lib/storage.ts`)               │
-│                    - `db.json` (Products + Returns)                    │
-│                    - Transaction Safety & Invariant Engine             │
+│         Browser storage (`localStorage`) and client-side logic          │
+│         - Products and return records are local to this browser         │
+│         - Analytics and safety assertions run in the browser            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -62,55 +54,17 @@ The application is structured as a modern Next.js 14+ full-stack web application
      `origTotal = product.price * qty`
      `newTotal = swapProduct.price * swapQty`
      `diff = origTotal - newTotal`
-6. Submitting form triggers `POST /api/returns`.
-7. Server validates invariants:
+6. Submitting the form validates and updates the browser's local database:
    - Target swap product has sufficient stock (`swapProduct.stock >= swapQty`).
    - Quantities are positive integers.
-8. Server updates `db.json` atomically:
+7. The browser updates `localStorage`:
    - Adjusts product stock.
    - Writes `ReturnRecord`.
-   - Executes Agent Hook assertions.
-9. UI receives response and performs live state refresh.
+   - Executes Agent Hook assertions and refreshes the UI.
 
 ---
 
-## 4. API Schema Definition
-
-### `GET /api/products`
-Returns current list of products with updated stock.
-
-### `POST /api/returns`
-Payload:
-```json
-{
-  "productId": "prod-101",
-  "qty": 1,
-  "reason": "defective",
-  "type": "return",
-  "restock": false,
-  "exchangeDetails": null,
-  "notes": "Left speaker crackles"
-}
-```
-
-### `POST /api/test-assertions`
-Runs safety invariant suite against state.
-Response:
-```json
-{
-  "timestamp": "2026-07-22T13:37:00.000Z",
-  "allPassed": true,
-  "assertions": [
-    { "name": "Inventory Non-Negative Check", "passed": true, "details": "All 8 products have stock >= 0" },
-    { "name": "Refund Upper Bound Guard", "passed": true, "details": "All return records maintain valid refund caps" },
-    { "name": "Restock Audit Compliance", "passed": true, "details": "Restock policies match logged specifications" }
-  ]
-}
-```
-
----
-
-## 5. UI Component Hierarchy
+## 4. UI Component Hierarchy
 - `src/app/page.tsx`
   - `Header`: Title, active store badge, reset data button, Agent Hook status indicator.
   - `SummaryCards`: Live refund total, total returns, restocked count, top defective item.

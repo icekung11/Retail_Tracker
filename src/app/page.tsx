@@ -9,6 +9,8 @@ import { ReturnLogTable } from '@/components/ReturnLogTable';
 import { AuditModal } from '@/components/AuditModal';
 import { ProductCatalogModal } from '@/components/ProductCatalogModal';
 import { Product, ReturnRecord, AnalyticsSummary, AssertionResult } from '@/types';
+import { addReturnTransaction, getAnalyticsSummary, getDatabase, resetDatabase } from '@/lib/storage';
+import { runSafetyAssertions } from '@/lib/assertions';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -33,52 +35,34 @@ export default function Home() {
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState<boolean>(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState<boolean>(false);
 
-  // Initial Data Fetch
-  const fetchData = async () => {
+  // Load data from this browser's local storage.
+  const loadData = () => {
     try {
       setLoading(true);
-      const [prodRes, retRes, assertRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/returns'),
-        fetch('/api/test-assertions')
-      ]);
-
-      const prodData = await prodRes.json();
-      const retData = await retRes.json();
-      const assertData = await assertRes.json();
-
-      if (prodData.products) setProducts(prodData.products);
-      if (retData.returns) setReturns(retData.returns);
-      if (retData.analytics) setAnalytics(retData.analytics);
-      if (assertData.assertions) setAssertions(assertData);
+      const db = getDatabase();
+      setProducts(db.products);
+      setReturns(db.returns);
+      setAnalytics(getAnalyticsSummary(db));
+      setAssertions(runSafetyAssertions(db));
     } catch (error) {
-      console.error('Error loading store data:', error);
+      console.error('Error loading browser data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    loadData();
   }, []);
 
   // Handle New Return or Exchange Submission
-  const handleLogReturnSubmit = async (payload: any) => {
-    const res = await fetch('/api/returns', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      throw new Error(data.error || 'Failed to record transaction');
-    }
-
-    if (data.products) setProducts(data.products);
-    if (data.record) setReturns(prev => [data.record, ...prev]);
-    if (data.analytics) setAnalytics(data.analytics);
-    if (data.assertions) setAssertions(data.assertions);
+  const handleLogReturnSubmit = async (payload: Omit<ReturnRecord, 'id' | 'timestamp'>) => {
+    const result = addReturnTransaction(payload);
+    const db = getDatabase();
+    setProducts(result.updatedProducts);
+    setReturns(db.returns);
+    setAnalytics(getAnalyticsSummary(db));
+    setAssertions(runSafetyAssertions(db));
   };
 
   // Handle Reset Data to Seed
@@ -86,12 +70,11 @@ export default function Home() {
     if (!confirm('Reset the returns database to sample store data?')) return;
     try {
       setLoading(true);
-      const res = await fetch('/api/reset', { method: 'POST' });
-      const data = await res.json();
-      if (data.products) setProducts(data.products);
-      if (data.returns) setReturns(data.returns);
-      if (data.analytics) setAnalytics(data.analytics);
-      if (data.assertions) setAssertions(data.assertions);
+      const db = resetDatabase();
+      setProducts(db.products);
+      setReturns(db.returns);
+      setAnalytics(getAnalyticsSummary(db));
+      setAssertions(runSafetyAssertions(db));
     } catch (error) {
       console.error('Error resetting database:', error);
     } finally {
@@ -102,9 +85,7 @@ export default function Home() {
   // Run Integrity Assertions
   const handleRunAssertions = async () => {
     try {
-      const res = await fetch('/api/test-assertions');
-      const data = await res.json();
-      setAssertions(data);
+      setAssertions(runSafetyAssertions(getDatabase()));
     } catch (error) {
       console.error('Error running assertions:', error);
     }

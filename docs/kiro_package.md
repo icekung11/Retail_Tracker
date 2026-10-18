@@ -85,12 +85,8 @@ The **Retail Returns & Exchange Tracker** is a specialized back-office web appli
 - **Framework**: Next.js 14+ (App Router) with TypeScript
 - **Styling**: Tailwind CSS with Glassmorphism Dark Theme design tokens
 - **Icons**: Lucide React
-- **Data Layer**: Local file-backed JSON store (`data/db.json`)
-- **API Endpoints**:
-  - `GET /api/products` — Retrieve inventory catalog
-  - `POST /api/returns` — Record return/exchange transaction & mutate stock
-  - `POST /api/reset` — Reset database to seed products
-  - `GET /api/test-assertions` — Execute Agent Hook safety assertions
+- **Data Layer**: Browser `localStorage`; data is local to the current browser and device
+- **Deployment**: Static export to GitHub Pages via GitHub Actions
 
 ## 2. Agent Hook & Invariants Engine
 - **Invariant 1 (Stock Non-Negativity)**: `product.stock >= 0` across all items.
